@@ -1,71 +1,39 @@
-file_name = "NoFilterEnglish2020-02-05"
-+------------------+------+
-|          mentions|   cnt|
-+------------------+------+
-|                []|237168|
-|            [Voot]|  7004|
-|    [Nancy Pelosi]|  3749|
-|               [ً]|  3575|
-|    [Charlie Kirk]|  3395|
-| [Donald J. Trump]|  2690|
-|[Donald Trump Jr.]|  2112|
-| [The White House]|  1514|
-| [Louis Tomlinson]|  1373|
-|               [♡]|  1345|
-|     [Dan Bongino]|  1341|
-|   [Ryan Fournier]|  1308|
-|       [Meek Mill]|  1271|
-|              [‏ً]|  1102|
-|  [official_IZONE]|  1072|
-|       [YG FAMILY]|  1062|
-| [Maas Singh 🇯🇲]|  1051|
-|   [Mark R. Levin]|  1027|
-|         [sabrina]|  1017|
-|   [Scott Dworkin]|  1011|
-+------------------+------+
-only showing top 20 rows
+------ File1: "NoFilterEnglish2020-02-01"
+
+
+------ File1: "NoFilterEnglish2020-02-02"
+
+number of positve categorized text is:  439217
+number of negative categorized text is: 190427
+number of neutral categorized text is: 554051
+total length of the data is:            1183695
 
 
 
-<class 'pandas.core.frame.DataFrame'>
-RangeIndex: 1304450 entries, 0 to 1304449
-Data columns (total 37 columns):
-contributors                 0 non-null object
-coordinates                  1099 non-null object
-created_at                   1304450 non-null object
-display_text_range           309910 non-null object
-entities                     1304450 non-null object
-extended_entities            239370 non-null object
-extended_tweet               105725 non-null object
-favorite_count               1304450 non-null int64
-favorited                    1304450 non-null bool
-filter_level                 1304450 non-null object
-geo                          1099 non-null object
-id                           1304450 non-null int64
-id_str                       1304450 non-null object
-in_reply_to_screen_name      284218 non-null object
-in_reply_to_status_id        274351 non-null float64
-in_reply_to_status_id_str    274351 non-null object
-in_reply_to_user_id          284218 non-null float64
-in_reply_to_user_id_str      284218 non-null object
-is_quote_status              1304450 non-null bool
-lang                         1304450 non-null object
-place                        16375 non-null object
-possibly_sensitive           339798 non-null object
-quote_count                  1304450 non-null int64
-quoted_status                184507 non-null object
-quoted_status_id             184828 non-null float64
-quoted_status_id_str         184828 non-null object
-quoted_status_permalink      184507 non-null object
-reply_count                  1304450 non-null int64
-retweet_count                1304450 non-null int64
-retweeted                    1304450 non-null bool
-retweeted_status             773135 non-null object
-source                       1304450 non-null object
-text                         1304450 non-null object
-timestamp_ms                 1304450 non-null object
-truncated                    1304450 non-null bool
-user                         1304450 non-null object
-withheld_in_countries        175 non-null object
-dtypes: bool(4), float64(3), int64(5), object(25)
-memory usage: 333.4+ MB
+------ File1: "NoFilterEnglish2020-02-03"
+-----------------------------------------
+number of positve categorized text is:  463087
+number of negative categorized text is: 205748
+number of neutral categorized text is: 574918
+total length of the data is:            1243753
+
+
+
+
+
+------------------ All 3 days ---------------------
+number of positve categorized text is:  1351492
+number of negative categorized text is: 604826
+number of neutral categorized text is: 1694625
+total length of the data is:            3650943
+
+------------------ Task 5 ---------------------
+
+Calculate the frequency of words after filtering for Asim:
+               Shape of our filtered dataset is:  (68065, 8)
+
+
+------------------ Task 7 ---------------------
+
+Sentiment Analysis for Filtered (%asim) file Day 1: 
+              Shape of our filtered dataset is:  (68065, 8)

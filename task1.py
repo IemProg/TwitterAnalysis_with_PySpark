@@ -49,10 +49,20 @@ df = df.select('id','geo','timestamp_ms', 'retweeted', 'text', 'created_at',
 df.printSchema()
 #df.show()
 
-#print(dir(df))
+result_pdf = df.select("*").toPandas()
 print("Columns of our JSON file are: ", df.columns)
 
+#print("---------------------Summary of Our DataFrame ----------------------")
+#result_pdf.info()
 
+base_filename = "English_" + "01_02_03" + '_tweets_text_not_processed.txt'
+#with open(base_filename,'w') as outfile:
+#    result_pdf['text'].to_string(outfile, header=False, index=False)
+df.select("text").write.save(base_filename)
+
+print("File saved as: ", base_filename)
+
+"""
 print("---------------------Most Used Words Before Processing----------------------")
 count_df = df.withColumn('word', f.explode(f.split(f.col('text'), ' ')))\
     .groupBy('word')\
@@ -64,11 +74,7 @@ base_filename = "MostUsedWords_English_" + "01_02_03" + '_tweets_text_not_proces
 with open(base_filename,'w') as outfile:
     count_words.to_string(outfile, header=False, index=False)
 print("Saved file as: ", base_filename)
-
-print("---------------------Summary of Our DataFrame ----------------------")
-result_pdf = df.select("*").toPandas()
-result_pdf.info()
-
+"""
 print("---------------------10 First Tweets Text ----------------------")
 print(result_pdf["text"][:10])
 
@@ -119,40 +125,18 @@ print("----------------Lemmitisazed tweets----------------")
 print(result_pdf['lemma_str'].head())
 
 base_filename = "English_" + "01_02_03" + '_tweets_text_processed.txt'
-with open(base_filename,'w') as outfile:
-    result_pdf['lemma_str'].to_string(outfile, header=False, index=False)
-
+result_pdf['lemma_str'].to_csv(base_filename)
 print("File saved as: ", base_filename)
-#Neatly allocate all columns and rows to a .txt file
 
-#Save WordCloud for tweets text
-#show_wordcloud(train_clean['lemma_str'], title = 'Prevalent words in tweets')
+sparkDF = spark.createDataFrame(result_pdf)
+sparkDF.printSchema()
+print("---------------------Most Used Words After Processing----------------------")
+count_df = sparkDF.withColumn('word', f.explode(f.split(f.col('lemma_str'), ' ')))\
+                     .groupBy('word')\
+                     .count()\
+                     .sort('count', ascending=False)
 
-"""
-# We create a new column to push our arrays of words
-tokenizer = Tokenizer(inputCol="text", outputCol="words_token")
-tokenized = tokenizer.transform(df).select('id','words_token')
-
-print('############ Tokenized data extract:')
-tokenized.show()
-
-
-# Once in arrays, we can use the Apache Spark function StopWordsRemover
-# A new column "words_clean" is here as an output
-remover = StopWordsRemover(inputCol='words_token', outputCol='words_clean')
-data_clean = remover.transform(tokenized).select('id', 'words_clean')
-
-print('############ Data Cleaning extract:')
-data_clean.show()
-
-# Final step : like in the beginning, we can group again words and sort them by the most used
-result = data_clean.withColumn('word', f.explode(f.col('words_clean'))) \
-  .groupBy('word') \
-  .count().sort('count', ascending=False) \
-
-print('############ TOP20 Most used words:')
-result.show()
-"""
-
+base_filename = "English_" + "01_02_03" + '_most_words_processed.txt'
+count_df.toPandas().to_csv(base_filename)
 # Stop Spark Process
 spark.stop()

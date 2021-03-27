@@ -1,17 +1,31 @@
-#Task: Save most used words and hashtags for each day seperately
+#Task: Sentiment analysis for a given day
 
+import os, sys, string, re
 import pandas as pd
-pd.set_option('display.max_columns',100, 'display.max_colwidth',1000, 'display.max_rows',1000,
-              'display.float_format', lambda x: '%.2f' % x)
+pd.set_option('display.max_colwidth', -1)
+
+from utils import *
+import matplotlib # Importing matplotlib for it working on remote server
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from nltk.probability import FreqDist
+import csv
+
+import re
+from collections import Counter
+from string import punctuation
+
+from wordcloud import WordCloud
+from textblob import TextBlob
 
 import sparknlp
 from pyspark.sql import SparkSession
+import pyspark.sql.functions as f
+
 spark = SparkSession.builder \
     .master("local[4]")\
-    .config("spark.driver.cores", 10)\
+    .config("spark.driver.cores", 12)\
     .config("spark.jars.packages", "com.johnsnowlabs.nlp:spark-nlp_2.11:2.4.5")\
     .config('spark.executor.memory', '4g') \
     .config("spark.driver.memory", "15g") \
@@ -28,51 +42,76 @@ from pyspark.ml.evaluation import ClusteringEvaluator
 from pyspark.ml import Pipeline
 from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
 
+from nltk.tokenize import word_tokenize
 import nltk
-from nltk.corpus import stopwords
-from collections import Counter
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('wordnet')
+from nltk.corpus import stopwords, wordnet
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+
+# Converting part of speeches to wordnet format.
+def get_wordnet_pos(tag):
+    if tag.startswith('J'):
+        return wordnet.ADJ
+    elif tag.startswith('V'):
+        return wordnet.VERB
+    elif tag.startswith('N'):
+        return wordnet.NOUN
+    elif tag.startswith('R'):
+        return wordnet.ADV
+    else:
+        return wordnet.NOUN
+
+import missingno as mno
 from wordcloud import WordCloud
 
 from textblob import TextBlob
 
+stop = set(stopwords.words('english'))
+print("\t Number of stopwords is: ", len(stop))
 
-#Load / Cache Data
-#Spark dataframe should split into partitions = 2-3x the no. threads available in your CPU or cluster. I have 2 cores,
-#with 2 threads each = 4, and I chose 3x, ie. 12 partitions, based on experimentation.
-#Then cache tables: you can see in Spark GUI that 12 partitions are cached for each file.
-#The Shuffle Read is default to 200, we don't want this to be the bottleneck, so we set this equal to partitions in our data,
-#using spark.sql.shuffle.partitions. This is specific to wide shuffle transformations (e.g. GROUP BY or ORDER BY)
-#that may be performed later on, and how many partitions this operation sets up to read the data.
+file_name1 = "English/" + "NoFilterEnglish2020-02-01.json"
+file_name2 = "English/" + "NoFilterEnglish2020-02-02.json"
+file_name3 = "English/" + "NoFilterEnglish2020-02-03.json"
+folder = "day03/"
+day = "03"
+# Read JSON file into dataframe
+#result_pdf = spark.read.json([file_name1, file_name2, file_name3])                       #.repartition(4).persist()
+result_pdf = spark.read.json(file_name3)                       #.repartition(4).persist()
 
-file_name1 = "NoFilterEnglish2020-02-01"
-file = "English/" + file_name1 + ".json"
-tweets = spark.read.json(file).repartition(4).persist()
-tweets = tweets.select('id','geo','timestamp_ms', 'retweeted', 'text', 'created_at',
-                              'retweet_count','reply_count')
 
-#CreateOrReplaceTempView will create a temporary view of the table on memory it is not presistant at this moment
-#but you can run sql query on top of that .
-#if you want to save it you can either persist or use saveAsTable to save.
+result_pdf = result_pdf.select("*").toPandas()
+print(result_pdf["text"][:10])
 
-print("---------------------Most Used Words Before Processing----------------------")
-count_rdd = tweets.select("text").rdd.flatMap(lambda x: x[0].split(' ')) \
-              .map(lambda x: (x, 1)).reduceByKey(lambda x,y: x+y)
+print("------- Cleaning tweet's text ----------------")
+result_pdf['clean_text'] = result_pdf['text'].apply(processTweet)
+print(result_pdf["clean_text"][:10])
 
-result_pdf = count_rdd.select("*").toPandas()
-base_filename = "English_" + "01" + '_tweets_text_not_processed.txt'
-with open(base_filename,'w') as outfile:
-    result_pdf['lemma_str'].to_string(outfile, header=False, index=False)
-print("Saved file as: ", base_filename)
 
-tweets.createOrReplaceTempView('tweets')
-result_pdf = tweets.select("*").toPandas()
-print(result_pdf.info())
+print("------- Categorizing tweet's text ----------------")
+result_pdf['category'] = result_pdf['clean_text'].apply(analyze_sentiment)
+result_pdf.head(n=10)
 
-print("-----------------------Top Hashtags--------------------------")
-query = '''
-SELECT tweets.entities.user_mentions.name AS mentions, COUNT(*) as cnt
-FROM tweets
-GROUP BY mentions
-ORDER BY cnt DESC
-'''
-print(spark.sql(query).show())
+
+# check the number of positive vs. negative tagged sentences
+positives = result_pdf['category'][result_pdf.category == 1]
+negatives = result_pdf['category'][result_pdf.category == -1]
+neutrals = result_pdf['category'][result_pdf.category == 0]
+
+
+print("-----------------------------------------")
+print('number of positve categorized text is:  {}'.format(len(positives)))
+print('number of negative categorized text is: {}'.format(len(negatives)))
+print('number of neutral categorized text is: {}'.format(len(neutrals)))
+print('total length of the data is:            {}'.format(result_pdf.shape[0]))
+
+slices_len = [len(positives), len(negatives), len(neutrals)]
+category = ['positives', 'negatives', 'neutrals']
+colors = ['r', 'g', 'b']
+
+plt.pie(slices_len, labels=category, colors=colors, startangle=90, autopct='%.1f%%')
+name = folder + "PieFig_for_Day_" + str(day)
+plt.savefig(name)
